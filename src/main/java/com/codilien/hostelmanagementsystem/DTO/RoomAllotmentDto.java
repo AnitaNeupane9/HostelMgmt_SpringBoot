@@ -24,7 +24,6 @@ public class RoomAllotmentDto {
 
     @PastOrPresent(message = "Checkout date cannot be in the future.")
     private LocalDateTime checkOut;
-
     private Long studentId;
     private Long roomId;
 }

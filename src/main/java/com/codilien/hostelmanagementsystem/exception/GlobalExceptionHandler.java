@@ -1,7 +1,6 @@
-package com.codilien.hostelmanagementsystem;
+package com.codilien.hostelmanagementsystem.exception;
 
-import com.codilien.hostelmanagementsystem.exception.*;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import com.codilien.hostelmanagementsystem.Response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -71,12 +70,27 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
-    // You can add other exception handlers for different exceptions if needed
+    @ExceptionHandler(ApplicationException.class)
+    public ResponseEntity<BaseResponse> handleApplicationException(ApplicationException ex){
+        BaseResponse response = new BaseResponse();
+        response.setCode(404);
+        response.setMessage(ex.getMessage());
+        response.setStatus(false);
+
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+
+    // handlers for different exceptions if needed
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGenericException(Exception ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ex.getMessage());
+    public ResponseEntity<BaseResponse> handleGenericException(Exception ex) {
+        BaseResponse response = new BaseResponse();
+        response.setStatus(false);
+//        response.setMessage("An Unexpected Error Occurred.");
+        response.setMessage(ex.getMessage());
+        response.setCode(400);
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
 

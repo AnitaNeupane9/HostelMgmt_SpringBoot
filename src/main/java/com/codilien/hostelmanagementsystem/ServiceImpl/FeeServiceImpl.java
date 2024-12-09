@@ -10,6 +10,7 @@ import com.codilien.hostelmanagementsystem.repository.StudentRepository;
 import com.codilien.hostelmanagementsystem.service.FeeService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,9 @@ public class FeeServiceImpl implements FeeService {
     private StudentRepository studentRepository;
 
     @Autowired
-    public FeeServiceImpl(FeeRepository feeRepository, StudentRepository studentRepository) {
+    public FeeServiceImpl(FeeRepository feeRepository,
+                          StudentRepository studentRepository) {
+
         this.feeRepository = feeRepository;
         this.studentRepository = studentRepository;
     }
@@ -34,27 +37,31 @@ public class FeeServiceImpl implements FeeService {
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT')")
     public FeeDto createFee(FeeDto feeDto) {
-        Optional<Student> studentOpt = studentRepository.findById(feeDto.getStudentId());
-        if (studentOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Student");
+        try {
+            Optional<Student> studentOpt = studentRepository.findById(feeDto.getStudentId());
+            if (studentOpt.isEmpty()) {
+                throw new ResourceNotFoundException("Student");
+            }
+
+            Student student = studentOpt.get();
+            // Check if the Student status is Active
+            if (!student.isActive()) {
+                throw new InactiveStudentException("Fee cannot be created. Student status is inactive.");
+            }
+
+            Fee fee = new Fee();
+            fee.setTotalAmount(feeDto.getTotalAmount());
+            fee.setPenaltyFee(0.0);
+            fee.setNetAmount(fee.getTotalAmount() + fee.getPenaltyFee());
+            fee.setRemainingAmount(fee.getNetAmount());
+            fee.setDueDate(feeDto.getDueDate());
+            fee.setStudent(studentOpt.get());
+
+            Fee savedFee = feeRepository.save(fee);
+            return mapToDto(savedFee);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityViolationException("Fee for the student is already Created.");
         }
-
-        Student student = studentOpt.get();
-        // Check if the Student status is Active
-        if (!student.isActive()) {
-            throw new InactiveStudentException("Fee cannot be created. Student status is inactive.");
-        }
-
-        Fee fee = new Fee();
-        fee.setTotalAmount(feeDto.getTotalAmount());
-        fee.setPenaltyFee(0.0);
-        fee.setNetAmount(fee.getTotalAmount());
-        fee.setRemainingAmount(fee.getNetAmount());
-        fee.setDueDate(feeDto.getDueDate());
-        fee.setStudent(studentOpt.get());
-
-        Fee savedFee = feeRepository.save(fee);
-        return mapToDto(savedFee);
     }
 
     @Override
@@ -75,116 +82,63 @@ public class FeeServiceImpl implements FeeService {
                 .collect(Collectors.toList());
     }
 
-//    @Override
-//    @Transactional
-//    public FeeDto updateFee(Long id, FeeDto feeDto) {
-//        Optional<Fee> existingFeeOpt = feeRepository.findById(id);
-//        if (existingFeeOpt.isEmpty()){
-//            throw new RuntimeException("Fee record doesn't exist.");
-//        }
-//
-//        Fee toBeUpdated  = existingFeeOpt.get();
-//        toBeUpdated.setActualAmount(feeDto.getActualAmount());
-//        toBeUpdated.setDueDate(feeDto.getDueDate());
-//
-//        if (toBeUpdated.getPenaltyFee() != null) {
-//            double penalty = toBeUpdated.getPenaltyFee().doubleValue();
-//        } else {
-//            double penalty = 0.0;
-//        }
-//
-//        // Calculate net amount if it's not provided (actual amount + penalty fee)
-//        double netAmount;
-//        if (feeDto.getNetAmount() != null) {
-//            netAmount = feeDto.getNetAmount();
-//        } else {
-//            netAmount = toBeUpdated.getActualAmount() + toBeUpdated.getPenaltyFee();
-//        }
-//        toBeUpdated.setNetAmount(netAmount);
-//
-//        // Update remaining amount if it's provided, otherwise set same as netAmount
-//        if (feeDto.getRemainingAmount() != null) {
-//            toBeUpdated.setRemainingAmount(feeDto.getRemainingAmount());
-//        } else {
-//            toBeUpdated.setRemainingAmount(netAmount);
-//        }
-//
-//
-//        toBeUpdated.setFeeType(feeDto.getFeeType());
-//
-//        // Update the studentId (as they might add fee to wrong student)
-//        if (feeDto.getStudentId() != null) {
-//            Optional<Student> studentOpt = studentRepository.findById(feeDto.getStudentId());
-//            if (studentOpt.isEmpty()) {
-//                throw new StudentNotFoundException(feeDto.getStudentId());
-//            }
-//
-//            Student student = studentOpt.get();
-//            // Check if the Student status is Active
-//            if (!student.isActive()) {
-//                throw new RuntimeException("Fee cannot be updated. Student status is inactive.");
-//            }
-//
-//            toBeUpdated.setStudent(student);
-//        }
-//
-//        Fee updatedFee = feeRepository.save(toBeUpdated);
-//        return mapToDto(updatedFee);
-//    }
-
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT')")
     @Transactional
     public FeeDto updateFee(Long id, FeeDto feeDto) {
-        Optional<Fee> existingFeeOpt = feeRepository.findById(id);
-        if (existingFeeOpt.isEmpty()) {
-            throw new ResourceNotFoundException("Fee");
-        }
-
-        Fee toBeUpdated = existingFeeOpt.get();
-        toBeUpdated.setTotalAmount(feeDto.getTotalAmount());
-        toBeUpdated.setDueDate(feeDto.getDueDate());
-
-        // Set penalty fee to 0 if it's null
-        double penaltyFee = 0.0;
-        if (toBeUpdated.getPenaltyFee() != null) {
-            penaltyFee = toBeUpdated.getPenaltyFee();
-        }
-
-        // Calculate net amount (use provided value or calculate with actual + penalty)
-        double netAmount = 0.0;
-        if (feeDto.getNetAmount() != null) {
-            netAmount = feeDto.getNetAmount();
-        } else {
-            netAmount = toBeUpdated.getTotalAmount() + penaltyFee;
-        }
-        toBeUpdated.setNetAmount(netAmount);
-
-        // Set remaining amount
-        double remainingAmount = netAmount;
-        if (feeDto.getRemainingAmount() != null) {
-            remainingAmount = feeDto.getRemainingAmount();
-        }
-        toBeUpdated.setRemainingAmount(remainingAmount);
-
-        // Update student if studentId is provided
-        if (feeDto.getStudentId() != null) {
-            Optional<Student> studentOpt = studentRepository.findById(feeDto.getStudentId());
-            if (studentOpt.isEmpty()) {
-                throw new ResourceNotFoundException("Student");
+        try {
+            Optional<Fee> existingFeeOpt = feeRepository.findById(id);
+            if (existingFeeOpt.isEmpty()) {
+                throw new ResourceNotFoundException("Fee");
             }
 
-            Student student = studentOpt.get();
-            if (!student.isActive()) {
-                throw new InactiveStudentException("Fee cannot be updated. Student status is inactive.");
+            Fee toBeUpdated = existingFeeOpt.get();
+            toBeUpdated.setTotalAmount(feeDto.getTotalAmount());
+            toBeUpdated.setDueDate(feeDto.getDueDate());
+
+            // Set penalty fee to 0 if it's null
+            double penaltyFee = 0.0;
+            if (toBeUpdated.getPenaltyFee() != null) {
+                penaltyFee = toBeUpdated.getPenaltyFee();
             }
 
-            toBeUpdated.setStudent(student);
-        }
+            // Calculate net amount (use provided value or calculate with actual + penalty)
+            double netAmount = 0.0;
+            if (feeDto.getNetAmount() != null) {
+                netAmount = feeDto.getNetAmount();
+            } else {
+                netAmount = toBeUpdated.getTotalAmount() + penaltyFee;
+            }
+            toBeUpdated.setNetAmount(netAmount);
 
-        // Save the updated fee and return DTO
-        Fee updatedFee = feeRepository.save(toBeUpdated);
-        return mapToDto(updatedFee);
+            // Set remaining amount
+            double remainingAmount = netAmount;
+            if (feeDto.getRemainingAmount() != null) {
+                remainingAmount = feeDto.getRemainingAmount();
+            }
+            toBeUpdated.setRemainingAmount(remainingAmount);
+
+            // Update student if studentId is provided
+            if (feeDto.getStudentId() != null) {
+                Optional<Student> studentOpt = studentRepository.findById(feeDto.getStudentId());
+                if (studentOpt.isEmpty()) {
+                    throw new ResourceNotFoundException("Student");
+                }
+
+                Student student = studentOpt.get();
+                if (!student.isActive()) {
+                    throw new InactiveStudentException("Fee cannot be updated. Student status is inactive.");
+                }
+
+                toBeUpdated.setStudent(student);
+            }
+
+            // Save the updated fee and return DTO
+            Fee updatedFee = feeRepository.save(toBeUpdated);
+            return mapToDto(updatedFee);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityViolationException("Fee for the student is already Created.");
+        }
     }
 
 
@@ -198,18 +152,21 @@ public class FeeServiceImpl implements FeeService {
 
 
     @Scheduled(cron = "0 0 0 * * ?")   // Checks if the fee is overdue or not and update the penalty on daily basis
-    public void applyPenaltyIfDueDatePassed() {
+//    @Scheduled(cron = "0 48 17 * * ?")
+public void applyPenaltyIfDueDatePassed() {
         LocalDate currentDate = LocalDate.now();
 
-        // Find all fees that have crossed the due date and are unpaid
+        // Find all fees that have crossed the due date and fee is not cleared
         List<Fee> overdueFees = feeRepository.findOverdue(currentDate, 0);
 
         for (Fee fee : overdueFees) {
-            double penaltyFee = fee.getTotalAmount() * 0.10;   // 10% penalty based on the actual amount
-            fee.setPenaltyFee(penaltyFee);
-            fee.setNetAmount(fee.getTotalAmount() + penaltyFee);
-            fee.setRemainingAmount(fee.getNetAmount());
-            feeRepository.save(fee);
+            if (fee.getPenaltyFee() == 0) {
+                double penaltyFee = fee.getTotalAmount() * 0.10;   // 10% penalty based on the actual amount
+                fee.setPenaltyFee(penaltyFee);
+                fee.setNetAmount(fee.getTotalAmount() + penaltyFee);
+                fee.setRemainingAmount(fee.getNetAmount());
+                feeRepository.save(fee);
+            }
         }
     }
 

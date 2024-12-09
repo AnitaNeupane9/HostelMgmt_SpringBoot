@@ -22,21 +22,22 @@ public class MyUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Try to find the student first
-        Student student = studentRepository.findByUsername(username);
+        Student student = studentRepository.findByUsername(username)
+                .orElse(null);
         if (student != null) {
             return new StudentPrincipal(student);
         }
 
         // If student is not found, try to find the employee
-        Employee employee = employeeRepository.findByUsername(username);
+        Employee employee = employeeRepository.findByUsername(username)
+                .orElse(null);
 
         if (employee != null) {
             return new EmployeePrincipal(employee);
         }
 
         // If neither student nor employee is found, throw an exception
-        System.out.println("User not found");
+//        System.out.println("User not found");
         throw new UsernameNotFoundException("User not found.");
     }
 }

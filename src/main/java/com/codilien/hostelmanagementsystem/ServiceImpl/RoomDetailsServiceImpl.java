@@ -7,6 +7,7 @@ import com.codilien.hostelmanagementsystem.mapper.RoomDetailsMapper;
 import com.codilien.hostelmanagementsystem.model.RoomDetails;
 import com.codilien.hostelmanagementsystem.repository.RoomDetailsRepository;
 import com.codilien.hostelmanagementsystem.service.RoomDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ public class RoomDetailsServiceImpl implements RoomDetailsService {
 
     private RoomDetailsRepository roomDetailsRepository;
 
+    @Autowired
     public RoomDetailsServiceImpl(RoomDetailsRepository roomDetailsRepository) {
         this.roomDetailsRepository = roomDetailsRepository;
     }
@@ -33,17 +35,17 @@ public class RoomDetailsServiceImpl implements RoomDetailsService {
         // Calculate available slots as capacity - currentStudentCount
         roomDetails.setAvailableStudentSlots(roomDetails.getCapacity());
 
-//        // throw exception if the roomnumber is already present in db
-//        if (roomDetailsRepository.existsByRoomNumber(roomDetails.getRoomNumber())){
-//            throw new ResourceConflictException("The Room Number " + roomDetailsDto.getRoomNumber());
-//        }
+        // throw exception if the roomnumber is already present in db
+        if (roomDetailsRepository.existsByRoomNumber(roomDetails.getRoomNumber())){
+            throw new ResourceConflictException("The Room Number " + roomDetailsDto.getRoomNumber());
+        }
 
         RoomDetails savedRoom = roomDetailsRepository.save(roomDetails);
         return RoomDetailsMapper.mapToRoomDetailsDto(savedRoom);
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN') or (hasRole('STUDENT') and @securityService.isOwner(#id,'ROOM'))")
     public RoomDetailsDto getRoom(Long id) {
        RoomDetails roomDetails = roomDetailsRepository.findById(id)
                .orElseThrow(() -> new ResourceNotFoundException("Room"));
@@ -55,12 +57,12 @@ public class RoomDetailsServiceImpl implements RoomDetailsService {
     public RoomDetailsDto updateRoom(Long id, RoomDetailsDto roomDetailsDto) {
         RoomDetails existingRoom = roomDetailsRepository.findById(id)
                 .orElseThrow(() ->new ResourceNotFoundException("Room"));
-        existingRoom.setRoomNumber(roomDetailsDto.getRoomNumber());
+
         existingRoom.setFloor(roomDetailsDto.getFloor());
         existingRoom.setRoomType(roomDetailsDto.getRoomType());
         existingRoom.setCapacity(roomDetailsDto.getCapacity());
         existingRoom.setCurrentStudentCount(roomDetailsDto.getCurrentStudentCount());
-        existingRoom.setAvailableStudentSlots(roomDetailsDto.getAvailableStudentSlots());
+        existingRoom.setAvailableStudentSlots(roomDetailsDto.getCapacity() - roomDetailsDto.getCurrentStudentCount());
         existingRoom.setStatus(roomDetailsDto.getStatus());
 
         RoomDetails updatedRoom = roomDetailsRepository.save(existingRoom);

@@ -1,14 +1,8 @@
 package com.codilien.hostelmanagementsystem.config;
 
 import com.codilien.hostelmanagementsystem.exception.ResourceNotFoundException;
-import com.codilien.hostelmanagementsystem.model.Complaint;
-import com.codilien.hostelmanagementsystem.model.Employee;
-import com.codilien.hostelmanagementsystem.model.Fee;
-import com.codilien.hostelmanagementsystem.model.Student;
-import com.codilien.hostelmanagementsystem.repository.ComplaintRepository;
-import com.codilien.hostelmanagementsystem.repository.EmployeeRepository;
-import com.codilien.hostelmanagementsystem.repository.FeeRepository;
-import com.codilien.hostelmanagementsystem.repository.StudentRepository;
+import com.codilien.hostelmanagementsystem.model.*;
+import com.codilien.hostelmanagementsystem.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,18 +11,32 @@ import org.springframework.stereotype.Service;
 @Service
 public class SecurityService {
 
-    @Autowired
+    private final RoomDetailsRepository roomDetailsRepository;
     private StudentRepository studentRepository;
-
-    @Autowired
     private EmployeeRepository employeeRepository;
-
-    @Autowired
     private ComplaintRepository complaintRepository;
-    @Autowired
     private FeeRepository feeRepository;
+    private ReviewReplyRepository reviewReplyRepository;
+    private HostelReviewRepository hostelReviewRepository;
 
-    // ownership check logic
+    @Autowired
+    public SecurityService(
+            StudentRepository studentRepository,
+            EmployeeRepository employeeRepository,
+            ComplaintRepository complaintRepository,
+            FeeRepository feeRepository,
+            ReviewReplyRepository reviewReplyRepository,
+            HostelReviewRepository hostelReviewRepository, RoomDetailsRepository roomDetailsRepository) {
+
+        this.studentRepository = studentRepository;
+        this.employeeRepository = employeeRepository;
+        this.complaintRepository = complaintRepository;
+        this.feeRepository = feeRepository;
+        this.reviewReplyRepository = reviewReplyRepository;
+        this.hostelReviewRepository = hostelReviewRepository;
+        this.roomDetailsRepository = roomDetailsRepository;
+    }
+
     public boolean isOwner(Long entityId, String entityType) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 
@@ -37,7 +45,7 @@ public class SecurityService {
                 Student  student = studentRepository.findById(entityId)
                         .orElse(null);
                 if (student == null || !(student.getUsername().equals(currentUsername))){
-                    throw new AccessDeniedException("Access is denied.");
+                    throw new AccessDeniedException("Access is denied. Try Again!");
                 }
                 break;
 
@@ -45,7 +53,7 @@ public class SecurityService {
                 Employee employee = employeeRepository.findById(entityId)
                         .orElse(null);
                 if (employee == null || !(employee.getUsername().equals(currentUsername))) {
-                    throw new AccessDeniedException("Access is denied.");
+                    throw new AccessDeniedException("Access is denied. Try Again!");
                 }
                 break;
 
@@ -53,7 +61,7 @@ public class SecurityService {
                 Complaint complaint = complaintRepository.findById(entityId)
                         .orElse(null);
                 if (complaint == null || !(complaint.getStudent().getUsername().equals(currentUsername))) {
-                    throw new AccessDeniedException("Access is denied.");
+                    throw new AccessDeniedException("Access is denied. Try Again!");
                 }
                 break;
 
@@ -61,8 +69,47 @@ public class SecurityService {
                 Fee fee = feeRepository.findById(entityId)
                         .orElse(null);
                 if (fee == null || !(fee.getStudent().getUsername().equals(currentUsername))){
-                    throw new AccessDeniedException("Access is denied.");
+                    throw new AccessDeniedException("Access is denied. Try Again!");
                 }
+                break;
+
+            case "REPLY":
+                ReviewReply reviewReply = reviewReplyRepository.findById(entityId)
+                        .orElse(null);
+                if (reviewReply == null || !(reviewReply.getStudent().getUsername().equals(currentUsername))){
+                    throw new AccessDeniedException("Access is denied. Try Again!");
+                }
+                break;
+
+            case "REVIEW":
+                HostelReview hostelReview = hostelReviewRepository.findById(entityId)
+                        .orElse(null);
+                if (hostelReview == null || !(hostelReview.getStudent().getUsername().equals(currentUsername))){
+                    throw new AccessDeniedException("Access is denied. Try Again!");
+                }
+                break;
+
+            case "ROOM":
+                RoomDetails roomDetails = roomDetailsRepository.findById(entityId)
+                        .orElse(null);
+                if (roomDetails == null) {
+                    throw new ResourceNotFoundException("Room");
+                }
+
+                boolean isOwner = false;
+
+                // Iterate through room allotments to check ownership
+                for (RoomAllotment allotment : roomDetails.getRoomAllotments()) {
+                    if (allotment.getStudent() != null && allotment.getStudent().getUsername().equals(currentUsername)) {
+                        isOwner = true;
+                        break;
+                    }
+                }
+                if (!isOwner) {
+                    throw new AccessDeniedException("Access is denied.Try again!");
+                }
+                break;
+
 
             default:
                 throw new IllegalArgumentException("Unsupported entity type for ownership check.");

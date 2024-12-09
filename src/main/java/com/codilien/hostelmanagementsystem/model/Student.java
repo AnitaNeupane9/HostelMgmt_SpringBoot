@@ -2,12 +2,7 @@ package com.codilien.hostelmanagementsystem.model;
 
 import com.codilien.hostelmanagementsystem.Auditing.BaseEntity;
 import com.codilien.hostelmanagementsystem.Enum.Role;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,45 +17,51 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "student")
 public class Student extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "name")
     private String name;
+
+    @Column(name = "gender")
     private String gender;
+
+    @Column(name = "address")
     private String address;
+
+    @Column(name = "nationality")
     private String nationality;
 
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
-    @Past
+    @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @Column(nullable = false)
-    @Pattern(regexp = "^\\+?[0-9]{1,3}\\s?[0-9]{6,14}$", message = "Invalid phone number format")
+    @Column(name = "contact_number", nullable = false)
     private String contactNumber;
 
-
-    @Column(nullable = false, unique = true)
-    @NotBlank(message = "Email is required!")
-    @Email(message = "Email should be valid.")
+    @Column(name = "username", nullable = false, unique = true, columnDefinition = "COLLATE utf8_bin")
     private String username;
 
-    @Pattern(regexp = "^\\+?[0-9]{1,3}\\s?[0-9]{6,14}$", message = "Invalid phone number format")
+    @Column(name = "parent_contact")
     private String parentContact;
 
-    @Pattern(regexp = "^\\+?[0-9]{1,3}\\s?[0-9]{6,14}$", message = "Invalid phone number format")
+    @Column(name = "emergency_contact")
     private String emergencyContact;
 
+    @Column(name = "id_proof")
     private String idProof;
-//    private String profilePicture;
+
+    @Column(name = "password")
     private String password;
 
+    @Column(name = "role")
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @Column(name = "is_active")
     private boolean isActive;
 
 
@@ -73,6 +74,8 @@ public class Student extends BaseEntity {
     @OneToOne(mappedBy = "student")
     private Fee fees; // One student can have One fee Record
 
+    @OneToMany(mappedBy = "student")
+    private List<Visitors> visitors;
 
 
     // Constructor that align with mapper

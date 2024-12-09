@@ -23,7 +23,10 @@ public class ComplaintServiceImpl implements ComplaintService {
     private final StudentRepository studentRepository;
 
     @Autowired
-    public ComplaintServiceImpl(ComplaintRepository complaintRepository, StudentRepository studentRepository) {
+    public ComplaintServiceImpl(
+            ComplaintRepository complaintRepository,
+            StudentRepository studentRepository) {
+
         this.complaintRepository = complaintRepository;
         this.studentRepository = studentRepository;
     }

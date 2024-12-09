@@ -13,9 +13,9 @@ import java.util.List;
 @RequestMapping("/api/fees")
 public class FeeController {
 
-    @Autowired
     private FeeService feeService;
 
+    @Autowired
     public FeeController(FeeService feeService) {
         this.feeService = feeService;
     }

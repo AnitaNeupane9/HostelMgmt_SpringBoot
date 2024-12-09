@@ -13,9 +13,9 @@ import java.util.List;
 @RequestMapping("/api/roomAllotments/")
 public class RoomAllotmentController {
 
-    @Autowired
     private RoomAllotmentService roomAllotmentService;
 
+    @Autowired
     public RoomAllotmentController(RoomAllotmentService roomAllotmentService) {
         this.roomAllotmentService = roomAllotmentService;
     }
@@ -36,7 +36,7 @@ public class RoomAllotmentController {
         return ResponseEntity.ok(allotments);
     }
 
-    @GetMapping("/{id}/update")
+    @PutMapping("/{id}/update")
     public ResponseEntity<RoomAllotmentDto> updateRoomAllotments(@PathVariable Long id, @RequestBody RoomAllotmentDto roomAllotmentDto){
         return ResponseEntity.status(HttpStatus.OK).body(roomAllotmentService.updateRoomAllotment(id, roomAllotmentDto));
     }

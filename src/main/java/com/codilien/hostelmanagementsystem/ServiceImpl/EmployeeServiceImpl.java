@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,24 +21,26 @@ import java.util.stream.Collectors;
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
 
-    @Autowired
     private EmployeeRepository employeeRepository;
-    @Autowired
     private StudentRepository studentRepository;
 
-    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    @Autowired
+    public EmployeeServiceImpl(
+            EmployeeRepository employeeRepository,
+            StudentRepository studentRepository) {
 
-
-    public EmployeeServiceImpl(EmployeeRepository employeeRepository, StudentRepository studentRepository) {
         this.employeeRepository = employeeRepository;
         this.studentRepository = studentRepository;
     }
+
+    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Override
     @PreAuthorize("hasRole('ADMIN')")
     public EmployeeDto createEmployee(EmployeeDto employeeDto) {
 
-        if (employeeRepository.existsByUsername(employeeDto.getUsername()) || studentRepository.existsByUsername(employeeDto.getUsername()))
+        if (employeeRepository.existsByUsername(employeeDto.getUsername()) ||
+                studentRepository.existsByUsername(employeeDto.getUsername()))
         {
             throw new ResourceConflictException("The username " + employeeDto.getUsername());
         }
@@ -101,5 +104,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee"));
         employeeRepository.delete(employee);
+    }
+
+    public void checkStatus(){
+        LocalDate currentDate = LocalDate.now();
+
     }
 }

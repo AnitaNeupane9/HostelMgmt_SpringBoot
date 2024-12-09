@@ -4,6 +4,9 @@ package com.codilien.hostelmanagementsystem.model;
 import com.codilien.hostelmanagementsystem.Auditing.BaseEntity;
 import com.codilien.hostelmanagementsystem.Enum.Role;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,6 +31,7 @@ public class Employee extends BaseEntity {
     private String name;
     private String contactNumber;
     private String address;
+    @Column(columnDefinition = "COLLATE utf8_bin", nullable = false, unique = true)
     private String username;
 
     @Enumerated(EnumType.STRING)
@@ -40,4 +44,5 @@ public class Employee extends BaseEntity {
     private LocalTime shiftStartsAt;
     private LocalTime shiftEndsAt;
     private String idProof;
+//    private boolean isActive;
 }

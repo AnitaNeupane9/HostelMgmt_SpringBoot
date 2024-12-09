@@ -27,14 +27,8 @@ public class RoomDetails extends BaseEntity {
 
     private int floor;
     private String roomType;
-
-    @Min(1)
     private int capacity;
-
-    @Min(0)
     private int currentStudentCount;
-
-    @Min(0)
     private int availableStudentSlots;
 
     @Enumerated(EnumType.STRING)

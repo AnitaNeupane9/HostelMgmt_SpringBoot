@@ -16,15 +16,16 @@ import java.util.List;
 @RequestMapping("/api/rooms")
 public class RoomDetailsController {
 
-    @Autowired
     private RoomDetailsService roomDetailsService ;
-    @Autowired
     private RoomDetailsRepository roomDetailsRepository;
 
-    public RoomDetailsController(RoomDetailsService roomDetailsService) {
-        this.roomDetailsService = roomDetailsService;
-    }
+    public RoomDetailsController(
+            RoomDetailsService roomDetailsService,
+            RoomDetailsRepository roomDetailsRepository) {
 
+        this.roomDetailsService = roomDetailsService;
+        this.roomDetailsRepository = roomDetailsRepository;
+    }
 
     @PostMapping("/create")
     public ResponseEntity<Object> addRoom (@RequestBody RoomDetailsDto roomDetailsDto) {
@@ -44,7 +45,10 @@ public class RoomDetailsController {
     }
 
     @PutMapping("/{id}/update")
-    public ResponseEntity<RoomDetailsDto> editRoomDetail(@PathVariable Long id, @RequestBody RoomDetailsDto roomDetailsDto){
+    public ResponseEntity<RoomDetailsDto> editRoomDetail(
+            @PathVariable Long id,
+            @RequestBody RoomDetailsDto roomDetailsDto){
+
         return ResponseEntity.status(HttpStatus.OK).body(roomDetailsService.updateRoom(id,roomDetailsDto));
     }
 

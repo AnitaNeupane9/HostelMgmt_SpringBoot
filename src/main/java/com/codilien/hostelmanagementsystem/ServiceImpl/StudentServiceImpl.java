@@ -20,26 +20,27 @@ import java.util.stream.Collectors;
 @Service
 public class StudentServiceImpl implements StudentService {
 
-    @Autowired
     private StudentRepository studentRepository;
-
-    @Autowired
     private EmployeeRepository employeeRepository;
 
-    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    @Autowired
+    public StudentServiceImpl(
+            StudentRepository studentRepository,
+            EmployeeRepository employeeRepository) {
 
-
-    public StudentServiceImpl(StudentRepository studentRepository, EmployeeRepository employeeRepository) {
         this.studentRepository = studentRepository;
         this.employeeRepository = employeeRepository;
     }
+
+    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Override
     public StudentDto registerStudent(StudentDto studentDto) {
 
         Student student = StudentMapper.mapToStudent(studentDto);
 
-        if (studentRepository.existsByUsername(studentDto.getUsername()) || employeeRepository.existsByUsername(studentDto.getUsername())){
+        if (studentRepository.existsByUsername(studentDto.getUsername()) ||
+                employeeRepository.existsByUsername(studentDto.getUsername())){
             throw new ResourceConflictException("The username " + studentDto.getUsername());
         }
 
@@ -99,7 +100,8 @@ public class StudentServiceImpl implements StudentService {
         Student toBeUpdated = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student"));
 
-        if (studentRepository.existsByUsername(studentDto.getUsername()) || employeeRepository.existsByUsername(studentDto.getUsername())){
+        if (studentRepository.existsByUsername(studentDto.getUsername()) ||
+                employeeRepository.existsByUsername(studentDto.getUsername())){
             throw new ResourceConflictException("The username " + studentDto.getUsername());
         }
 
@@ -121,7 +123,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')or (hasRole('STUDENT') and @securityService.isOwner(#id,'STUDENT'))")
     public void deleteStudent(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student"));
