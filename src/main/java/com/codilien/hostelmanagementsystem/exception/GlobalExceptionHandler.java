@@ -76,7 +76,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleGenericException(Exception ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body("An unexpected error occurred: " + ex.getMessage());
+                .body(ex.getMessage());
     }
 }
 
